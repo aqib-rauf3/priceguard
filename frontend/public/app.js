@@ -38,17 +38,39 @@ function renderProducts(products) {
     .map((p) => {
       const price = p.latest_price ? `Rs. ${Number(p.latest_price).toLocaleString()}` : "N/A";
       const inStock = p.in_stock === true || p.in_stock === "true";
+
+      const thumbInner = p.image_url
+        ? `<img src="${escapeHtml(p.image_url)}" alt="" loading="lazy" />`
+        : `<span class="thumb-fallback">${escapeHtml((p.site || "?").charAt(0).toUpperCase())}</span>`;
+
+      let targetHtml = "";
+      if (p.target_price && p.latest_price) {
+        const target = Number(p.target_price);
+        const latest = Number(p.latest_price);
+        const hit = latest <= target;
+        const pct = hit ? 100 : Math.max(4, Math.min(96, (target / latest) * 100));
+        targetHtml = `
+          <div class="target-row">
+            <span class="target-label ${hit ? "hit" : ""}">${hit ? "✓ Target reached" : `Target Rs. ${target.toLocaleString()}`}</span>
+            <div class="target-track"><div class="target-fill" style="width:${pct}%"></div></div>
+          </div>`;
+      }
+
       return `
         <div class="product-card" data-id="${p.id}" data-name="${escapeHtml(p.name)}">
-          <p class="site-tag">${p.site}</p>
-          <p class="name">${escapeHtml(p.name)}</p>
-          <div class="price-row">
-            <span class="price-tag">${price}</span>
+          <div class="thumb">
+            ${thumbInner}
+            <span class="site-badge">${escapeHtml(p.site)}</span>
             <span class="stock-badge ${inStock ? "in" : "out"}">${inStock ? "In Stock" : "Out of Stock"}</span>
           </div>
-          <div class="card-footer">
-            <button class="icon-btn recheck-btn" data-id="${p.id}">↻ Re-check</button>
-            <button class="icon-btn delete-btn" data-id="${p.id}">✕ Remove</button>
+          <div class="card-body">
+            <p class="name">${escapeHtml(p.name)}</p>
+            <span class="price-tag">${price}</span>
+            ${targetHtml}
+            <div class="card-footer">
+              <button class="icon-btn recheck-btn" data-id="${p.id}">↻ Re-check</button>
+              <button class="icon-btn delete-btn" data-id="${p.id}">✕ Remove</button>
+            </div>
           </div>
         </div>
       `;
@@ -139,8 +161,8 @@ async function openChart(id, name) {
         {
           label: "Price (Rs.)",
           data: prices,
-          borderColor: "#2DD4BF",
-          backgroundColor: "rgba(45, 212, 191, 0.1)",
+          borderColor: "#FFB627",
+          backgroundColor: "rgba(255, 182, 39, 0.10)",
           tension: 0.3,
           fill: true,
           pointRadius: 3,
@@ -149,10 +171,10 @@ async function openChart(id, name) {
     },
     options: {
       responsive: true,
-      plugins: { legend: { labels: { color: "#8493AD" } } },
+      plugins: { legend: { labels: { color: "#7C8AAE" } } },
       scales: {
-        x: { ticks: { color: "#8493AD" }, grid: { color: "#22314C" } },
-        y: { ticks: { color: "#8493AD" }, grid: { color: "#22314C" } },
+        x: { ticks: { color: "#7C8AAE" }, grid: { color: "#223056" } },
+        y: { ticks: { color: "#7C8AAE" }, grid: { color: "#223056" } },
       },
     },
   });

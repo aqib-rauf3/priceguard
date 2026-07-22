@@ -1,0 +1,20 @@
+{
+  "name": "priceguard-backend",
+  "version": "1.0.0",
+  "description": "PriceGuard - Multi-site price tracker & alert system",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "pg": "^8.13.0",
+    "playwright": "^1.47.0",
+    "node-cron": "^3.0.3",
+    "node-telegram-bot-api": "^0.66.0",
+    "dotenv": "^16.4.5"
+  }
+}

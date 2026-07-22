@@ -8,58 +8,45 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <span class="brand-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-            <path d="M12 2L4 5V11C4 16.5 7.4 21.2 12 22C16.6 21.2 20 16.5 20 11V5L12 2Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-            <path d="M8.5 12L11 14.5L16 9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
-        <span class="brand-name">PriceGuard</span>
+  <header class="hero">
+    <div class="brand">
+      <span class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L4 5V11C4 16.5 7.4 21.2 12 22C16.6 21.2 20 16.5 20 11V5L12 2Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M8.5 12L11 14.5L16 9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+      <span>PriceGuard</span>
+    </div>
+    <h1>Paste a link. <span class="accent">Never overpay</span> again.</h1>
+    <p class="sub">Track prices across Daraz, Amazon &amp; more — get a Telegram ping the moment one hits your target.</p>
+
+    <form id="addProductForm">
+      <div class="track-bar">
+        <input type="url" id="url" placeholder="https://www.daraz.pk/products/..." required />
+        <button type="submit" id="submitBtn">+ Track Price</button>
       </div>
-      <p class="tagline">Multi-site price tracking &amp; instant drop alerts</p>
-      <div class="stat-strip" id="statStrip">
-        <div class="stat"><span class="stat-value" id="statCount">0</span><span class="stat-label">Tracked</span></div>
-        <div class="stat"><span class="stat-value" id="statAlerts">0</span><span class="stat-label">Target set</span></div>
+      <div class="track-extra">
+        <input type="number" id="targetPrice" placeholder="Target price (Rs.) — optional" />
+        <input type="text" id="chatId" placeholder="Telegram chat ID — optional" />
       </div>
+    </form>
+    <p id="formStatus" class="status-msg"></p>
+
+    <div class="stat-strip" id="statStrip">
+      <div class="stat"><span class="stat-value" id="statCount">0</span><span class="stat-label">Tracked</span></div>
+      <div class="stat"><span class="stat-value" id="statAlerts">0</span><span class="stat-label">Target set</span></div>
     </div>
   </header>
 
   <main class="container">
-    <section class="add-product-card">
-      <div class="card-heading">
-        <h2>Track a new product</h2>
-        <p class="card-subtitle">Paste a product link from Daraz, Amazon, or any supported store.</p>
-      </div>
-      <form id="addProductForm">
-        <div class="field">
-          <label for="url">Product URL</label>
-          <input type="url" id="url" placeholder="https://www.daraz.pk/products/..." required />
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="targetPrice">Target Price (Rs.) — optional</label>
-            <input type="number" id="targetPrice" placeholder="e.g. 25000" />
-          </div>
-          <div class="field">
-            <label for="chatId">Telegram Chat ID — optional</label>
-            <input type="text" id="chatId" placeholder="message the bot to get yours" />
-          </div>
-        </div>
-        <button type="submit" id="submitBtn">+ Add Product</button>
-      </form>
-      <p id="formStatus" class="status-msg"></p>
-    </section>
-
     <section>
       <div class="section-heading">
         <h2 class="section-title">Tracked products</h2>
         <span class="section-hint">Click a card to view its price history</span>
       </div>
       <div id="productGrid" class="product-grid">
-        <p class="empty-state">No products tracked yet. Add one above to get started.</p>
+        <p class="empty-state">No products tracked yet. Paste a link above to get started.</p>
       </div>
     </section>
   </main>

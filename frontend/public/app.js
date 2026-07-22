@@ -37,7 +37,7 @@ function renderProducts(products) {
   productGrid.innerHTML = products
     .map((p) => {
       const price = p.latest_price ? `Rs. ${Number(p.latest_price).toLocaleString()}` : "N/A";
-      const inStock = p.in_stock === 1;
+      const inStock = p.in_stock === true || p.in_stock === "true";
       return `
         <div class="product-card" data-id="${p.id}" data-name="${escapeHtml(p.name)}">
           <p class="site-tag">${p.site}</p>

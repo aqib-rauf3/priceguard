@@ -10,7 +10,9 @@ router.get("/", async (req, res) => {
     const { rows } = await pool.query(`
       SELECT p.*,
         (SELECT price FROM price_history WHERE product_id = p.id ORDER BY checked_at DESC LIMIT 1) as latest_price,
-        (SELECT in_stock FROM price_history WHERE product_id = p.id ORDER BY checked_at DESC LIMIT 1) as in_stock
+        (SELECT in_stock FROM price_history WHERE product_id = p.id ORDER BY checked_at DESC LIMIT 1) as in_stock,
+        (SELECT MAX(price) FROM price_history WHERE product_id = p.id) as highest_price,
+        (SELECT MIN(price) FROM price_history WHERE product_id = p.id) as lowest_price
       FROM products p ORDER BY p.created_at DESC
     `);
     res.json(rows);
@@ -41,8 +43,8 @@ router.post("/", async (req, res) => {
     const scraped = await scrapeProduct(url);
 
     const insertProduct = await pool.query(
-      `INSERT INTO products (name, url, site, image_url, target_price, telegram_chat_id)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      `INSERT INTO products (name, url, site, image_url, target_price, telegram_chat_id, currency)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
       [
         scraped.name,
         url,
@@ -50,6 +52,7 @@ router.post("/", async (req, res) => {
         scraped.imageUrl,
         target_price || null,
         telegram_chat_id || null,
+        scraped.currency || "PKR",
       ]
     );
     const productId = insertProduct.rows[0].id;
@@ -102,7 +105,7 @@ router.post("/:id/check", async (req, res) => {
     ) {
       await sendTelegramMessage(
         product.telegram_chat_id,
-        `🔔 Price Drop Alert!\n${product.name}\nNew price: Rs. ${scraped.price}\nTarget: Rs. ${product.target_price}\n${product.url}`
+        `🔔 Price Drop Alert!\n${product.name}\nNew price: ${product.currency || "PKR"} ${scraped.price}\nTarget: ${product.currency || "PKR"} ${product.target_price}\n${product.url}`
       );
     }
 

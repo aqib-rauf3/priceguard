@@ -9,6 +9,22 @@ const closeModal = document.getElementById("closeModal");
 const chartTitle = document.getElementById("chartTitle");
 let chartInstance = null;
 
+const CURRENCY_SYMBOLS = {
+  PKR: "Rs. ",
+  USD: "$",
+  GBP: "£",
+  EUR: "€",
+  INR: "₹",
+  CAD: "CA$",
+  AED: "AED ",
+  SAR: "SAR ",
+};
+
+function formatMoney(amount, currency) {
+  const symbol = CURRENCY_SYMBOLS[currency] ?? `${currency || "PKR"} `;
+  return `${symbol}${Number(amount).toLocaleString()}`;
+}
+
 // --- Fetch & render products ---
 async function loadProducts() {
   try {
@@ -36,8 +52,27 @@ function renderProducts(products) {
 
   productGrid.innerHTML = products
     .map((p) => {
-      const price = p.latest_price ? `Rs. ${Number(p.latest_price).toLocaleString()}` : "N/A";
+      const price = p.latest_price ? formatMoney(p.latest_price, p.currency) : "N/A";
       const inStock = p.in_stock === true || p.in_stock === "true";
+
+      const latest = p.latest_price ? Number(p.latest_price) : null;
+      const highest = p.highest_price ? Number(p.highest_price) : null;
+      const lowest = p.lowest_price ? Number(p.lowest_price) : null;
+
+      let discountBadge = "";
+      if (latest && highest && highest > latest) {
+        const pctOff = Math.round((1 - latest / highest) * 100);
+        if (pctOff > 0) discountBadge = `<span class="discount-badge">-${pctOff}%</span>`;
+      }
+
+      let rangeHtml = "";
+      if (highest && lowest && highest !== lowest) {
+        rangeHtml = `
+          <div class="price-range">
+            <span class="low">Lowest <b>${formatMoney(lowest, p.currency)}</b></span>
+            <span class="high">Highest <b>${formatMoney(highest, p.currency)}</b></span>
+          </div>`;
+      }
 
       const thumbInner = p.image_url
         ? `<img src="${escapeHtml(p.image_url)}" alt="" loading="lazy" />`
@@ -51,21 +86,23 @@ function renderProducts(products) {
         const pct = hit ? 100 : Math.max(4, Math.min(96, (target / latest) * 100));
         targetHtml = `
           <div class="target-row">
-            <span class="target-label ${hit ? "hit" : ""}">${hit ? "✓ Target reached" : `Target Rs. ${target.toLocaleString()}`}</span>
+            <span class="target-label ${hit ? "hit" : ""}">${hit ? "✓ Target reached" : `Target ${formatMoney(target, p.currency)}`}</span>
             <div class="target-track"><div class="target-fill" style="width:${pct}%"></div></div>
           </div>`;
       }
 
       return `
-        <div class="product-card" data-id="${p.id}" data-name="${escapeHtml(p.name)}">
+        <div class="product-card" data-id="${p.id}" data-name="${escapeHtml(p.name)}" data-currency="${p.currency || "PKR"}">
           <div class="thumb">
             ${thumbInner}
             <span class="site-badge">${escapeHtml(p.site)}</span>
             <span class="stock-badge ${inStock ? "in" : "out"}">${inStock ? "In Stock" : "Out of Stock"}</span>
+            ${discountBadge}
           </div>
           <div class="card-body">
             <p class="name">${escapeHtml(p.name)}</p>
             <span class="price-tag">${price}</span>
+            ${rangeHtml}
             ${targetHtml}
             <div class="card-footer">
               <button class="icon-btn recheck-btn" data-id="${p.id}">↻ Re-check</button>
@@ -81,7 +118,7 @@ function renderProducts(products) {
   document.querySelectorAll(".product-card").forEach((card) => {
     card.addEventListener("click", (e) => {
       if (e.target.closest(".icon-btn")) return; // ignore button clicks
-      openChart(card.dataset.id, card.dataset.name);
+      openChart(card.dataset.id, card.dataset.name, card.dataset.currency);
     });
   });
 
@@ -140,7 +177,7 @@ form.addEventListener("submit", async (e) => {
 });
 
 // --- Chart modal ---
-async function openChart(id, name) {
+async function openChart(id, name, currency) {
   const res = await fetch(`${API_BASE}/${id}/history`);
   const history = await res.json();
 
@@ -159,7 +196,7 @@ async function openChart(id, name) {
       labels,
       datasets: [
         {
-          label: "Price (Rs.)",
+          label: `Price (${(currency || "PKR").trim()})`,
           data: prices,
           borderColor: "#FFB627",
           backgroundColor: "rgba(255, 182, 39, 0.10)",

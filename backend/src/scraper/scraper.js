@@ -34,7 +34,7 @@ function detectSite(url) {
 const SITE_CONFIG = {
   daraz: {
     name: ".pdp-mod-product-badge-title, .pdp-product-title",
-    price: ".pdp-price, .pdp-product-price .pdp-price_type_normal",
+    price: ".pdp-price, .pdp-product-price .pdp-price_type_normal, .pdp-price_type_normal, .pdp-price_color_orange, [class*='pdp-price']",
     image: ".gallery-preview-panel__image, .pdp-mod-common-image",
   },
   amazon: {
@@ -149,7 +149,13 @@ async function scrapeProduct(url) {
 
   try {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
-    await page.waitForTimeout(2000); // let dynamic content settle
+
+    // Prices on sites like Daraz often render asynchronously (a separate
+    // widget/API call after the initial page load), not with the rest of
+    // the HTML. Waiting for the price selector specifically — instead of a
+    // fixed sleep — means fast pages don't waste time, and slow pages get
+    // a real chance (up to 8s) to finish loading before we give up.
+    await page.waitForSelector(config.price, { timeout: 8000 }).catch(() => {});
 
     // 1. Try structured data first — most reliable, survives site redesigns
     const structured = await extractFromJsonLd(page);

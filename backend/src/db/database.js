@@ -32,6 +32,10 @@ async function initDb() {
       in_stock BOOLEAN DEFAULT TRUE,
       checked_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    -- Safe on existing databases too: only adds the column if it's missing,
+    -- so this doesn't error out on a table that was created before this field existed.
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'PKR';
   `);
   console.log("✅ Database schema ready");
 }

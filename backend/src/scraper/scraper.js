@@ -1,6 +1,23 @@
 const { chromium } = require("playwright");
 
 /**
+ * Guesses the currency from the domain when structured data doesn't say.
+ * Amazon's currency depends on which country storefront the URL is for,
+ * NOT just "amazon." — .com is USD, .co.uk is GBP, etc.
+ */
+function detectCurrency(url) {
+  if (url.includes("daraz.pk")) return "PKR";
+  if (url.includes("amazon.co.uk")) return "GBP";
+  if (url.includes("amazon.de") || url.includes("amazon.fr") || url.includes("amazon.it") || url.includes("amazon.es")) return "EUR";
+  if (url.includes("amazon.ca")) return "CAD";
+  if (url.includes("amazon.in")) return "INR";
+  if (url.includes("amazon.ae")) return "AED";
+  if (url.includes("amazon.sa")) return "SAR";
+  if (url.includes("amazon.com")) return "USD";
+  return "PKR"; // safest default for this app's primary audience
+}
+
+/**
  * Detects which site a URL belongs to, so we can apply the right
  * scraping selectors. Easy to extend with more sites later.
  */
@@ -78,6 +95,7 @@ async function extractFromJsonLd(page) {
             name: item.name || null,
             price: price && price > 0 ? price : null,
             imageUrl: Array.isArray(item.image) ? item.image[0] : item.image || null,
+            currency: offer?.priceCurrency || null,
             inStock: offer?.availability
               ? !/outofstock/i.test(offer.availability)
               : null,
@@ -87,6 +105,31 @@ async function extractFromJsonLd(page) {
     }
   } catch {
     // structured data not available/parsable — caller falls back to selectors
+  }
+  return null;
+}
+
+/**
+ * Tries each selector in a comma-separated list ONE AT A TIME, in the order
+ * given, returning the first one that yields non-empty text/attribute.
+ *
+ * This matters because `page.locator("a, b").first()` picks whichever
+ * matching element appears FIRST IN THE DOM — not whichever selector is
+ * listed first. On pages where an "Out of Stock" badge happens to sit above
+ * the product title in the markup, that combined-selector approach can grab
+ * the badge text instead of the title. Trying selectors in explicit priority
+ * order avoids that.
+ */
+async function firstMatchInOrder(page, selectorList, attr = null) {
+  const selectors = selectorList.split(",").map((s) => s.trim());
+  for (const sel of selectors) {
+    try {
+      const locator = page.locator(sel).first();
+      const value = attr ? await locator.getAttribute(attr) : await locator.textContent();
+      if (value && value.trim()) return value.trim();
+    } catch {
+      // this selector didn't match on this page — try the next one
+    }
   }
   return null;
 }
@@ -112,23 +155,16 @@ async function scrapeProduct(url) {
     const structured = await extractFromJsonLd(page);
 
     // 2. Fall back to CSS selectors for whatever structured data missed
-    const name =
-      structured?.name ||
-      (await page.locator(config.name).first().textContent().catch(() => null));
+    const name = structured?.name || (await firstMatchInOrder(page, config.name));
 
     let price = structured?.price ?? null;
     if (price === null) {
-      const priceRaw = await page
-        .locator(config.price)
-        .first()
-        .textContent()
-        .catch(() => null);
+      const priceRaw = await firstMatchInOrder(page, config.price);
       price = extractPrice(priceRaw);
     }
 
     const imageUrl =
-      structured?.imageUrl ||
-      (await page.locator(config.image).first().getAttribute("src").catch(() => null));
+      structured?.imageUrl || (await firstMatchInOrder(page, config.image, "src"));
 
     await browser.close();
 
@@ -137,6 +173,7 @@ async function scrapeProduct(url) {
       name: name ? name.trim() : "Unknown Product",
       price: price,
       imageUrl: imageUrl || null,
+      currency: structured?.currency || detectCurrency(url),
       inStock: structured?.inStock ?? price !== null,
     };
   } catch (err) {
@@ -145,4 +182,4 @@ async function scrapeProduct(url) {
   }
 }
 
-module.exports = { scrapeProduct, detectSite };
+module.exports = { scrapeProduct, detectSite, detectCurrency };
